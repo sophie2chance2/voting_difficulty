@@ -1,0 +1,15 @@
+---
+title: "Lab 1: Evaluating Assumptions"
+subtitle: "Legislators"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r load packages, message=FALSE}
+library(tidyverse)
+```
+
+```{r load data}
+legislators <- read_csv('../datasets/legislators-current.csv')
+```
+

@@ -1,0 +1,21 @@
+library(wooldridge)
+library(ggplot2)
+
+# Load in Wine dataset
+data("wine")
+
+# Create column with the differnce between Heart and Liver dealths 
+# Heart deaths ALWAYS higher than liver deaths, so num will never be negative
+wine$difference <- (wine$heart -  wine$liver)
+
+# Histogram showing the count of countries by difference in num deaths
+ggplot(wine, aes(x=difference)) +
+  geom_histogram(binwidth=20, fill="lightblue", color="black") +
+  labs(title="Comparison of Heart-Related Deaths to Liver Deaths", x="Difference between Heart and Liver Deaths", y="Number of Countries")
+
+# Calculate means and median
+mean_difference <- mean(wine$difference, na.rm = TRUE)
+median_difference <- median(wine$difference, na.rm = TRUE)
+
+mean_heart <- mean(wine$heart, na.rm = TRUE)
+mean_liver <- mean(wine$liver, na.rm = TRUE)

@@ -1,0 +1,21 @@
+---
+title: "Lab 1: Evaluating Assumptions"
+subtitle: "Wine and Health"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r install package if it does not exist}
+if(!require(wooldridge)){
+    install.packages("wooldridge")
+}
+```
+
+```{r load packages, message=FALSE}
+library(tidyverse)
+```
+
+```{r load data, message=FALSE}
+wine <- wooldridge::wine
+```
+

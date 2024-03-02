@@ -1,0 +1,19 @@
+# Load dataset
+data <- read.csv("datasets/GSS_religion.csv") 
+
+# Group the data by pos/neg temperature because data is ordinal
+data$diff_group <- ifelse(data$difference > 0, "More Protestant Positive", ifelse(data$difference < 0, "More Catholic Positive", "Neutral"))
+
+# Create new dataframe with grouped data
+data_summarized <- data %>%
+  group_by(diff_group) %>%
+  summarise(surveys = n())
+  
+# reorder so neutral is in the middle
+data_summarized$diff_group <- factor(data_summarized$diff_group, levels = c("More Catholic Positive", "Neutral", "More Protestant Positive"))
+
+# plot
+ggplot(data_summarized, aes(x=diff_group, y=surveys)) +
+  geom_bar(stat="identity", fill = "purple") +
+  labs(title="Comparison of Protestant to Catholic Temperature", x="Temperature Groupings", y="Number of Surveys")
+

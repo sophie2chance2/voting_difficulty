@@ -1,0 +1,15 @@
+---
+title: "Lab 1: Evaluating Assumptions"
+subtitle: "Attitudes Toward the Religious"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r load packages, message=FALSE}
+library(tidyverse)
+```
+
+```{r load data, message=FALSE}
+gss <- read_csv('../datasets/GSS_religion.csv')
+```
+

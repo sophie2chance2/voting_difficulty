@@ -1,0 +1,75 @@
+---
+title: "Lab 1: Evaluating Assumptions"
+subtitle: "Legislators"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r load packages, message=FALSE}
+library(tidyverse)
+```
+
+```{r load data}
+legislators <- read_csv('legislators-current.csv')
+```
+```{r look at data}
+leg_by_party <- legislators %>%
+  group_by(party)
+```
+This will give us the ability to group each of the members by party, drop those that are not in the dem or republicans and then also drop all of the non-relevant fields
+```{r find all of the unique values for parties}
+unique(leg_by_party$party)
+```
+```{r drop those values with independent party listed}
+leg_by_party2 <- leg_by_party[!leg_by_party$party=='Independent',]
+```
+
+```{r testing of the removal}
+unique(leg_by_party2$party)
+```
+```{r drop all of the unnecessary values except for date of birth}
+leg_by_party2 = subset(leg_by_party2, select = c(last_name, first_name, middle_name, birthday, party))
+```
+```{r create a new column for the age based on the date of birth}
+leg_by_party2$current_age = as.numeric(difftime(Sys.Date(),leg_by_party2$birthday, units = "weeks"))/52.25
+```
+```{r create a histograph of ages for dems and republicans next to each other}
+# install.packages("ggplot2")
+library(ggplot2)
+
+# Histogram by group in ggplot2
+ggplot(leg_by_party2, aes(x = current_age, colour = party)) + 
+  geom_histogram(fill = 'white', alpha = 0.5) +
+  scale_color_manual(values = c("blue", "red"))
+
+```
+```{r side by side histogram}
+
+ggplot(leg_by_party2, aes(x = current_age, colour = party)) + 
+  geom_histogram(aes(color = party, fill = party), alpha = 0.5) + 
+  facet_wrap(~ party, nrow = 1) +
+  scale_fill_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c("blue", "red")) +
+  labs(title = "Number of Senators by Age by Party, Democrats and Republicans Only")
+  
+```
+
+
+```{r side by side histogram}
+ggplot(leg_by_party2, aes(x = current_age, colour = party)) + 
+  geom_histogram(fill = 'white', alpha = 0.5, position = "dodge") +
+  scale_color_manual(values = c("blue", "red")) +
+  labs(title = "Number of Senators by Age by Party, Democrats and Republicans Only")
+```
+
+
+```{r summary of the democrats}
+summary(leg_by_party2[leg_by_party2$party=='Democrat',])
+```
+
+```{r summary of the republicans}
+summary(leg_by_party2[leg_by_party2$party=='Republican',])
+```
+
+ggplot(leg_by_party2, aes(x = current_age, fill = party, colour = party)) + 
+  geom_histogram(alpha = 0.5) 

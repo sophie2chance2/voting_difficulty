@@ -1,0 +1,173 @@
+```{r Load the data and look at a summary of the data}
+anes_data_2022 <- read.csv("datasets/anes_pilot_2022_csv_20221214.csv", header = TRUE)
+```
+When you look at the data, there are 577 different columns and 1500 rows/entries.
+
+Need to look more at the various columns
+
+```{r}
+colnames(anes_data_2022)
+```
+The documentation says that there are 1500 that are used to represent the population but 85 that are not and consequently did not receive weights. Checking to see if the 'weight' column and/or the 'weight_spss' column represent that (i.e. if the value in that column is null or 0, do the count of those equal 85)
+
+```{r Analyze the weight column}
+sum(is.na(anes_data_2022$weight))
+```
+```{r Analyze the weight_spss column}
+sum(is.na(anes_data_2022$weight_spss))
+```
+Based on the fact that the na values in those columns amount to 85 for each, we can use that to remove those columns and only get the values that are weighted and representative of the population.
+```{r Remove the entires who have na in their weight column}
+library(tidyr)
+
+anes_data_2022 <- anes_data_2022 %>%
+  drop_na(weight)
+```
+
+```{r Check to make sure that there's no remaining na in the weight_spss column}
+sum(is.na(anes_data_2022$weight_spss))
+```
+This validates that we only have the 1500 entries that are reflective of the population, as the documentation highlighted
+```{r Remove unnecessary columns}
+library(dplyr)
+
+anes_data_2022_scrubbed <- select(anes_data_2022, caseid, weight, weight_spss, RAND_PIPE, RAND_PID, turnout22, turnout22ns, pipevote22a, votehard, pid1d, pid2r, pid1r, pidlean)
+
+anes_data_2022_scrubbed
+```
+
+```{r Create a new column called party}
+anes_data_2022_scrubbed['party'] <- NA
+
+anes_data_2022_scrubbed
+```
+
+```{r see if there are values in pid1d if rand_pid is equal to 2}
+
+rand_pid_2 <- filter(anes_data_2022_scrubbed, RAND_PID == '2')
+rand_pid_2
+```
+
+```{r see unique values in pid1d for those that are in rand_pid_2}
+
+unique(rand_pid_2$pid1d)
+```
+This is not a valid value, i.e. it doesn't correspond to an actual party
+```{r see what the values are for pid1r with rand_pid = 1}
+
+rand_pid_1 <- filter(anes_data_2022_scrubbed, RAND_PID == '1')
+
+unique(rand_pid_1$pid1r)
+```
+Again, the value is -1, which isn't a valid value.
+```{r See if the count of the -1 in each column is the same as the count for each PID}
+sum(anes_data_2022_scrubbed$pid1d == '-1')
+```
+
+```{r See if the count of the -1 in each column is the same as the count for each PID}
+sum(anes_data_2022_scrubbed$pid1r == '-1')
+```
+
+```{r test out to see if the change in party based on the pid1d column works}
+rand_pid_1$party[rand_pid_1$pid1d == 1] <- 'DEM'
+rand_pid_1$party[rand_pid_1$pid1d == 2] <- 'REP'
+
+rand_pid_1
+```
+
+```{r update the actal dataframes}
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1d == 1] <- 'DEM'
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1d == 2] <- 'REP'
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1r == 1] <- 'DEM'
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1r == 2] <- 'REP'
+
+anes_data_2022_scrubbed
+```
+
+```{r Check to see if there are any -1 that also has a party listed}
+
+party_lean_test <- filter(anes_data_2022_scrubbed, pidlean == '-1')
+
+unique(party_lean_test$party)
+
+party_lean_test_na <- filter(party_lean_test, party == NA)
+
+party_lean_test_na
+```
+
+```{r Update the party column based on the party lean}
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pidlean == 1] <- 'REP'
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pidlean == 2] <- 'DEM'
+
+sum(is.na(anes_data_2022_scrubbed$party))
+```
+
+```{r Remove all of the values that have na in the party column}
+
+anes_data_2022_scrubbed <- anes_data_2022_scrubbed %>%
+  drop_na(party)
+        
+sum(is.na(anes_data_2022_scrubbed$party))
+```
+
+```{r Look to see if all values in turnoutns are also -1 unless there is a 5 in turnout22}
+
+turnout_test <- filter(anes_data_2022_scrubbed, turnout22 != '5')
+
+unique(turnout_test$turnout22ns)
+
+```
+
+```{r Create a new column for did_vote }
+
+anes_data_2022_scrubbed['did_vote'] <- '1'
+
+sum(anes_data_2022_scrubbed$turnout22 == 4)
+
+```
+
+```{r Look in turnout22 and add a 0 to all the entries that did not vote based on a 4 in turnout22}
+
+anes_data_2022_scrubbed$did_vote[anes_data_2022_scrubbed$turnout22 == 4] <- 0
+
+```
+
+```{r Add 0 to the did_vote column for all entries that had 2 probably did not vote in turnout22ns}
+
+sum(anes_data_2022_scrubbed$turnout22ns == 2)
+
+anes_data_2022_scrubbed$did_vote[anes_data_2022_scrubbed$turnout22ns == 2] <- 0
+
+```
+
+```{r Add 0 to the did_vote column for all the entries that had I did not vote 1 in the pipevote22a}
+
+sum(anes_data_2022_scrubbed$pipevote22a == 1)
+
+anes_data_2022_scrubbed$did_vote[anes_data_2022_scrubbed$pipevote22a == 1] <- 0
+
+```
+```{r Test to make sure that all of the 0 match with the sums of the values above}
+
+sum(anes_data_2022_scrubbed$did_vote == '0')
+
+```
+
+```{r Remove all of the values that have a 0 in the did_vote column}
+
+anes_data_2022_scrubbed <- filter(anes_data_2022_scrubbed, did_vote == '1')
+
+sum(anes_data_2022_scrubbed$did_vote == '0')
+
+```
+```{r Keep only those columns that are needed}
+
+anes_data_2022_scrubbed <- select(anes_data_2022_scrubbed, caseid, weight, weight_spss, votehard, party)
+
+anes_data_2022_scrubbed
+
+```
+

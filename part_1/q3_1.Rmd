@@ -1,0 +1,35 @@
+library(ggplot2)
+library(dplyr)
+
+raw_data <- read.csv("datasets/happiness_WHR.csv") 
+
+# Data cleaning
+data <- raw_data %>% 
+  rename(
+    log_gdp = Log.GDP.per.capita,
+    country = Country.name,
+    life_latter = Life.Ladder
+    )
+data <- data %>% 
+  filter(!is.na(life_latter) & !is.na(log_gdp) & !is.na(country))
+data = subset(data, select = c(country, log_gdp, life_latter))
+
+# Find the mean GDP to split the dataset into high and low
+mean_gdp <- mean(data$log_gdp, na.rm = TRUE )
+
+# Split the data into high and low GDP data to find the mean happiness for each
+high_gdp_data <- data[data$log_gdp > mean_gdp, ]
+low_gdp_data  <- data[data$log_gdp <= mean_gdp, ]
+
+# Break data into high and low GDP based on the mean
+data$gdp_group <- ifelse(data$log_gdp > mean_gdp, "High GDP", "Low GDP")
+  
+# Create a box plot of Happiness Score by GDP Group
+ggplot(data, aes(x=gdp_group, y=life_latter, fill=gdp_group)) +
+  geom_boxplot() +
+  scale_fill_manual(values=c("red", "blue", "grey"), name = "GDP Group") +
+  labs(title="Happiness Score by GDP Group", x="GDP Group", y="Happiness Score") +
+  theme_minimal()
+
+  
+  

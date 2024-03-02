@@ -1,0 +1,15 @@
+---
+title: "Lab 1: Evaluating Assumptions"
+subtitle: "World Happiness"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r load packages, message=FALSE}
+library(tidyverse)
+```
+
+```{r load data}
+happiness <- read_csv('../datasets/happiness_WHR.csv')
+```
+

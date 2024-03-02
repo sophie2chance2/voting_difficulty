@@ -1,0 +1,202 @@
+---
+title: "ADD TITLE HERE"
+subtitle: "Datasci 203: Lab 1, Part 2 Assignment"
+author: "Sophie Chance, Amy Zhang, Maureen Fromuth" 
+
+output: pdf_document
+---
+
+\newpage
+\setcounter{page}{1}
+
+```{r load packages and set options, include=FALSE}
+library(tidyr)
+library(dplyr)
+
+options(tinytex.verbose = TRUE)
+knitr::opts_chunk$set(echo=FALSE, message=FALSE)
+```
+
+```{r load data and conduct data cleaning}
+anes_data_2022 <- read.csv("anes_pilot_2022_csv_20221214.csv", header = TRUE)
+
+#Remove all of the entries that are not weighted and thus do not reflect the population, per the documentation
+
+anes_data_2022 <- anes_data_2022 %>%
+  drop_na(weight)
+
+#Maintain only the following columns in the data: caseid, weight, weight_spss, RAND_PIPE, RAND_PID, turnout22, turnout22ns, pipevote22a, votehard, pid1d, pid2r, pid1r, pidlean
+
+anes_data_2022_scrubbed <- select(anes_data_2022, caseid, weight, weight_spss, RAND_PIPE, RAND_PID, turnout22, turnout22ns, pipevote22a, votehard, pid1d, pid2r, pid1r, pidlean)
+
+#Remove the entries that have na in the weight column
+
+anes_data_2022 <- anes_data_2022 %>%
+  drop_na(weight)
+
+# Create a new column called 'party'
+
+anes_data_2022_scrubbed['party'] <- NA
+
+#For all the entries with 1 in RAND_PID, if pid1d is 'Democrat' 1 update the new column 'party' to 'DEM'
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1d == 1] <- 'DEM'
+
+#For all the entries with 1 in RAND_PID, if pid1d is 'Republican' 2 update the new column 'party' to 'REP'
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1d == 2] <- 'REP'
+
+#For all the entries with pidlean that is not '-1', update the party column based off of pidlean with 1 equaling 'REP' and 2 'DEM'
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pidlean == 1] <- 'REP'
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pidlean == 2] <- 'DEM'
+
+#For all the entries with 2 in RAND_PID, if pid1r is 'Democrat' 1 update the new column 'party' to 'DEM'
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1r == 1] <- 'DEM'
+
+#For all the entries with 2 in RAND_PID, if pid1r is 'Republican' 2 update the new column 'party' to 'REP'
+
+anes_data_2022_scrubbed$party[anes_data_2022_scrubbed$pid1r == 2] <- 'REP'
+
+#Count how many entries will be removed because they do not have a DEM or a REP in the party column
+
+not_valid_party <- sum(is.na(anes_data_2022_scrubbed$party))
+
+#Remove all entries that have null values in the 'party' column to only keep DEM and REP values
+
+anes_data_2022_scrubbed <- anes_data_2022_scrubbed %>%
+  drop_na(party)
+
+#Create a column called did_vote to track if an entity did vote or not
+
+anes_data_2022_scrubbed['did_vote'] <- '1'
+
+#Add 0 to the did_vote column for all the entries with 1 or 3 in RAND_PIPE that include 'Definitely did not vote' 4 in turnout22
+
+anes_data_2022_scrubbed$did_vote[anes_data_2022_scrubbed$turnout22 == 4] <- 0
+
+#For all the entries with 1 or 3 in RAND_PIPE, if turnout22 includes 5, add 0 to the did_vote column for all entries that include 'Probably did not vote' 2 in turnout22ns
+
+anes_data_2022_scrubbed$did_vote[anes_data_2022_scrubbed$turnout22ns == 2] <- 0
+
+#Add 0 to the did_vote column for all the entries with 2 in RAND_PIPE that do include 'I did not vote' 1
+
+anes_data_2022_scrubbed$did_vote[anes_data_2022_scrubbed$pipevote22a == 1] <- 0
+
+#If they did not vote then identify the difficulty in voting as 'Extremely difficult' 5
+
+anes_data_2022_scrubbed$votehard[anes_data_2022_scrubbed$did_vote == 0] <- 5
+
+#Keep only the columns that are needed: caseid, did_vote, votehard, party
+
+anes_data_2022_scrubbed <- select(anes_data_2022_scrubbed, caseid, did_vote, votehard, party)
+
+```
+
+# Introduction
+
+Motivation for the analysis: There are ever growing concern that there are unfair challenges in voting being placed on one political party over the other, which may result in an influence in results. Advocacy groups mention several types of challenges with some of the most common challenges including altering district boundaries in addition to adding specific voter regulations and environments that would make it more difficult for voters to physically vote. 
+
+While it is important to measure the impact of these mechanisms individually, to evaluate the overall impact one must first baseline the relative difficulty of voting for the two primary parties, democrats and republicans. Using survey data provided in American National Elections Studies (ANES), this study will focus on the baseline and comparison of voting difficultly for the 2022 federal election. More specifically, it will evaluate if democrats or republicans experience more difficulty voting.
+
+
+# Conceptualization and Operationalization
+
+Description of the survey and resulting data: Online opt-in survey that asks various questions related to voter experience, choice, and election topic opinions (e.g. abortion, transgender, inflation, immigration, COVID). Participants broken into sub-groups for both vote participation (RAND_PID; 2 groups) and party alignment (RAND_PIPE; 3 groups). Groups received different questions, but question topics were similar. 
+
+Definitions - 
+- Voter
+  - Definition: Individual who participates in the voting process.
+  - Ideal Measurement: For the purposes of this study, want to incorporate a participant that has completed the voting process in order to ensure that the measure of difficulty is based off of the entire experience. As such, the study will not incorporate participants that did not vote.
+  - Used Measurement: The survey is taken following the actual election day. The delay results in some participants not remembering if they have actually voted. As such, it will be important to include members that definitively know they voted as well as those that believe they voted. 
+  - Variable Used: turnout22 (RAND_PIPE 1 and 3), turnout22ns for those that did not remember (RAND_PIPE 1 and 3), pipevote22a (RAND_PIPE 2) 
+- Republican
+  - Definition: 
+  - Ideal Measurement:
+  - Used Measurement:
+  - Variable Used:  
+- Democrat
+  - Definition:
+  - Ideal Measurement:
+  - Used Measurement:
+  - Variable Used:
+- Difficulty voting
+  - Definition:
+  - Ideal Measurement:
+  - Used Measurement:
+  - Variable Used:
+
+What changes did you make to the data
+
+# Visual Design
+
+Put a plot here
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+# Data Wrangling
+
+Discuss any cleaning you did to the data 
+What was the impact of that cleaning
+
+```{r make accounting table} 
+accounting_table <- anes_data_2022_scrubbed %>% 
+  mutate(
+    print_vote_2016 = case_when(
+      voted_2016 ~ "Voted 2016", 
+      !voted_2016 ~ "Did not Vote 2016"), 
+    print_vote_2018 = case_when(
+      voted_2018 ~ "Voted 2018", 
+      !voted_2018 ~ "Did not Vote 2018")) %$% 
+  prop.table(
+    table(
+      print_vote_2016, 
+      print_vote_2018))
+```
+
+```{r accounting-table}
+kable(
+  accounting_table,
+  digits = 2,
+  caption = "Self-Reported Voting Behavior in 2016 and 2018", 
+  booktabs = TRUE, 
+)
+```
+
+# Hypothesis Testing
+
+Discuss the statistical test and why we chose it
+List out the assumptions for your test and evaluate them; if they are not met discuss the consequences on the test
+List the null hypothesis and alternative hypothesis
+
+The null hypothesis of our t-test can be phrased as follows: 
+
+\begin{quote}
+  \textbf{Null Hypothesis:} \textit{The probability that the democrats have more difficulty voting than the republicans is the same probability that the republicans have more difficulty voting than the democrats}
+\end{quote}
+
+\begin{quote}
+  \textbf{Alternative Hypothesis:} \textit{The probability that the democrats have more difficulty voting than the republicans is NOT the same probability that the republicans have more difficulty voting than the democrats}
+\end{quote}
+
+Type out the code that we used in R 
+
+```{r t-test, echo=TRUE} 
+test <- anes %>% 
+  filter(emotions %in% c("More Anger", "More Fear")) %$% 
+  t.test(voting_change == 1 ~ emotions)
+```
+
+Use inline code chunks to share the results of the test
+
+# Test Results and Interpretation
+
+Discuss the statistical relevance of your results
+Discuss the practical relevance of your results
+Explain the main takeaway of the analysis and how it relates to the broader context identified in the introduction
+
+\newpage
+
